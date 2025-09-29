@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home Control Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .system-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        .system-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .system-title {
+            font-size: 1.8em;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-badge.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .metric-unit {
+            font-size: 0.75em;
+            color: #888;
+        }
+
+        .temperature { background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); }
+        .rpm { background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); }
+        .pwm { background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%); }
+        .air-quality { background: linear-gradient(135deg, #81ecec 0%, #00b894 100%); }
+        .window-state { background: linear-gradient(135deg, #fab1a0 0%, #ff7675 100%); }
+
+        .air-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .air-good { background: #d1fae5; color: #065f46; }
+        .air-moderate { background: #fef3c7; color: #92400e; }
+        .air-poor { background: #fee2e2; color: #991b1b; }
+
+        .control-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .control-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .slider-container {
+            margin-top: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .window-control {
+            display: flex;
+            gap: 10px;
+        }
+
+        .window-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .window-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .window-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .update-time {
+            text-align: center;
+            color: #999;
+            font-size: 0.8em;
+            margin-top: 15px;
+        }
+
+        .share-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .share-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .share-link {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            font-size: 0.9em;
+            color: #667eea;
+            word-break: break-all;
+            margin-bottom: 15px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+            transform: scale(1.05);
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+        }
+
+        @media (max-width: 1200px) {
+            .systems-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .system-title { font-size: 1.4em; }
+            .metric-value { font-size: 1.6em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Smart Home Control Dashboard</h1>
+        <p class="subtitle">Real-time Temperature Control & Air Quality Monitoring</p>
+
+        <div class="systems-grid">
+            <!-- Temperature Control System -->
+            <div class="system-card">
+                <div class="system-header">
+                    <div class="system-title">🌡️ Temperature Control</div>
+                    <div class="status-badge" id="tempStatus">Connecting...</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card temperature">
+                        <div class="metric-label">Temperature</div>
+                        <div class="metric-value" id="tempValue">--</div>
+                        <div class="metric-unit">°C</div>
+                    </div>
+                    <div class="metric-card rpm">
+                        <div class="metric-label">Fan Speed</div>
+                        <div class="metric-value" id="rpmValue">--</div>
+                        <div class="metric-unit">RPM</div>
+                    </div>
+                    <div class="metric-card pwm">
+                        <div class="metric-label">PWM Value</div>
+                        <div class="metric-value" id="pwmValue">--</div>
+                        <div class="metric-unit">/255</div>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">Fan Control</div>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" id="fanAutoBtn" onclick="setFanMode(false)">Auto</button>
+                        <button class="mode-btn" id="fanManualBtn" onclick="setFanMode(true)">Manual</button>
+                    </div>
+                    <div class="slider-container" id="fanSliderContainer">
+                        <div class="slider-label">
+                            <span>Fan Speed</span>
+                            <span id="fanSliderValue">OFF</span>
+                        </div>
+                        <input type="range" min="0" max="255" value="0" class="slider" id="fanSlider" oninput="updateFanSlider(this.value)">
+                    </div>
+                </div>
+
+                <div class="update-time" id="tempUpdateTime">Last updated: --</div>
+            </div>
+
+            <!-- Air Quality System -->
+            <div class="system-card">
+                <div class="system-header">
+                    <div class="system-title">💨 Air Quality Monitor</div>
+                    <div class="status-badge" id="airStatus">Connecting...</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card air-quality">
+                        <div class="metric-label">Air Quality</div>
+                        <div class="metric-value" id="airValue">--</div>
+                        <div class="metric-unit">
+                            <span class="air-status" id="airStatusText">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-card window-state">
+                        <div class="metric-label">Window</div>
+                        <div class="metric-value" id="windowValue">--</div>
+                        <div class="metric-unit">Status</div>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">Window Control</div>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" id="windowAutoBtn" onclick="setWindowMode(false)">Auto</button>
+                        <button class="mode-btn" id="windowManualBtn" onclick="setWindowMode(true)">Manual</button>
+                    </div>
+                    <div class="window-control" id="windowControlContainer">
+                        <button class="window-btn" id="windowCloseBtn" onclick="setWindow(false)">Close Window</button>
+                        <button class="window-btn" id="windowOpenBtn" onclick="setWindow(true)">Open Window</button>
+                    </div>
+                </div>
+
+                <div class="update-time" id="airUpdateTime">Last updated: --</div>
+            </div>
+        </div>
+
+        <div class="share-section">
+            <div class="share-title">📱 Share This Dashboard</div>
+            <div class="share-link" id="shareLink">Loading...</div>
+            <button class="copy-btn" id="copyBtn" onclick="copyLink()">Copy Link</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCC8s4b-d9pVYiAbtmSXhmlyH1RicuAFdE",
+            databaseURL: "https://smart-temp-controlled-room-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "smart-temp-controlled-room"
+        };
+
+        const app
