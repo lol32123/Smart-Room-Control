@@ -357,9 +357,15 @@
                     <div class="slider-container" id="fanSliderContainer">
                         <div class="slider-label">
                             <span>Fan Speed</span>
-                            <span id="fanSliderValue">OFF</span>
+                            <span id="fanSliderValue">MIN</span>
                         </div>
                         <input type="range" min="0" max="255" value="0" class="slider" id="fanSlider" oninput="updateFanSlider(this.value)">
+                        <div style="font-size: 0.8em; color: #888; margin-top: 8px; text-align: center;">
+                            0 = Minimum speed (fan runs continuously)
+                        </div>
+                    </div>
+                    <div id="boostIndicator" style="background: #d1fae5; color: #065f46; padding: 10px; border-radius: 10px; text-align: center; font-weight: 600; margin-top: 15px; display: none;">
+                        🚀 BOOST MODE: Max speed for fresh air circulation
                     </div>
                 </div>
 
@@ -398,6 +404,11 @@
                         <button class="window-btn" id="windowCloseBtn" onclick="setWindow(false)">Close Window</button>
                         <button class="window-btn" id="windowOpenBtn" onclick="setWindow(true)">Open Window</button>
                     </div>
+                    <div style="margin-top: 15px;">
+                        <button class="copy-btn" onclick="calibrateAirQuality()" style="width: 100%; background: #f59e0b;">
+                            🔧 Calibrate Air Sensor
+                        </button>
+                    </div>
                 </div>
 
                 <div class="update-time" id="airUpdateTime">Last updated: --</div>
@@ -426,6 +437,8 @@
 
         let isFanManualMode = false;
         let isWindowManualMode = false;
+        let lastTempUpdate = 0;
+        let lastAirUpdate = 0;
 
         // Display shareable link
         document.getElementById('shareLink').textContent = window.location.href;
@@ -439,15 +452,34 @@
                 document.getElementById('rpmValue').textContent = data.RPM ? Math.round(data.RPM) : '--';
                 document.getElementById('pwmValue').textContent = data.PWM !== undefined ? data.PWM : '--';
                 
+                // Show boost mode indicator
+                const boostIndicator = document.getElementById('boostIndicator');
+                if (data.BoostMode) {
+                    boostIndicator.style.display = 'block';
+                } else {
+                    boostIndicator.style.display = 'none';
+                }
+                
+                lastTempUpdate = Date.now();
                 const now = new Date();
                 document.getElementById('tempUpdateTime').textContent = `Last updated: ${now.toLocaleTimeString()}`;
-                document.getElementById('tempStatus').textContent = '🟢 Connected';
+                document.getElementById('tempStatus').textContent = '🟢 Online';
                 document.getElementById('tempStatus').className = 'status-badge connected';
             }
         }, (error) => {
             document.getElementById('tempStatus').textContent = '🔴 Error';
             document.getElementById('tempStatus').className = 'status-badge error';
         });
+
+        // Check if device is actually online (no updates for 10 seconds = offline)
+        setInterval(() => {
+            if (Date.now() - lastTempUpdate > 10000 && lastTempUpdate > 0) {
+                document.getElementById('tempStatus').textContent = '⚫ Offline';
+                document.getElementById('tempStatus').className = 'status-badge';
+                document.getElementById('tempStatus').style.background = '#e5e7eb';
+                document.getElementById('tempStatus').style.color = '#6b7280';
+            }
+        }, 5000);
 
         const tempControlRef = ref(database, 'Device1/Control/ManualMode');
         onValue(tempControlRef, (snapshot) => {
@@ -493,17 +525,18 @@
             const percent = Math.round((value / 255) * 100);
             let displayText = `${percent}%`;
             if (value == 0) {
-                displayText = 'OFF';
-            } else if (value == 255) {
+                displayText = 'MIN';
+            } else if (value >= 253) {
                 displayText = '100% (MAX)';
             }
             document.getElementById('fanSliderValue').textContent = displayText;
         }
 
         window.updateFanSlider = function(value) {
+            value = parseInt(value);
             updateFanSliderDisplay(value);
             if (isFanManualMode) {
-                set(ref(database, 'Device1/Control/ManualPWM'), parseInt(value));
+                set(ref(database, 'Device1/Control/ManualPWM'), value);
             }
         };
 
@@ -526,15 +559,26 @@
                     airStatusText.classList.add('air-poor');
                 }
                 
+                lastAirUpdate = Date.now();
                 const now = new Date();
                 document.getElementById('airUpdateTime').textContent = `Last updated: ${now.toLocaleTimeString()}`;
-                document.getElementById('airStatus').textContent = '🟢 Connected';
+                document.getElementById('airStatus').textContent = '🟢 Online';
                 document.getElementById('airStatus').className = 'status-badge connected';
             }
         }, (error) => {
             document.getElementById('airStatus').textContent = '🔴 Error';
             document.getElementById('airStatus').className = 'status-badge error';
         });
+
+        // Check if air quality device is actually online
+        setInterval(() => {
+            if (Date.now() - lastAirUpdate > 10000 && lastAirUpdate > 0) {
+                document.getElementById('airStatus').textContent = '⚫ Offline';
+                document.getElementById('airStatus').className = 'status-badge';
+                document.getElementById('airStatus').style.background = '#e5e7eb';
+                document.getElementById('airStatus').style.color = '#6b7280';
+            }
+        }, 5000);
 
         const airControlRef = ref(database, 'AirQualityDevice/Control/ManualMode');
         onValue(airControlRef, (snapshot) => {
@@ -592,6 +636,18 @@
             if (isWindowManualMode) {
                 set(ref(database, 'AirQualityDevice/Control/WindowOpen'), open);
                 updateWindowButtonsUI(open);
+            }
+        };
+
+        // Calibrate air quality sensor
+        window.calibrateAirQuality = function() {
+            if (confirm('Start air quality sensor calibration?\n\nMake sure the sensor is in clean air and wait for 10 seconds.')) {
+                set(ref(database, 'AirQualityDevice/Control/CalibrateNow'), true);
+                alert('Calibration command sent! Check the air quality device OLED display for progress.');
+                // Reset the flag after 2 seconds
+                setTimeout(() => {
+                    set(ref(database, 'AirQualityDevice/Control/CalibrateNow'), false);
+                }, 2000);
             }
         };
 
