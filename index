@@ -357,9 +357,15 @@
                     <div class="slider-container" id="fanSliderContainer">
                         <div class="slider-label">
                             <span>Fan Speed</span>
-                            <span id="fanSliderValue">OFF</span>
+                            <span id="fanSliderValue">31%</span>
                         </div>
-                        <input type="range" min="0" max="255" value="0" class="slider" id="fanSlider" oninput="updateFanSlider(this.value)">
+                        <input type="range" min="80" max="255" value="80" class="slider" id="fanSlider" oninput="updateFanSlider(this.value)">
+                        <div style="font-size: 0.8em; color: #888; margin-top: 8px; text-align: center;">
+                            Min: 31% (fan cannot stop completely)
+                        </div>
+                    </div>
+                    <div id="boostIndicator" style="background: #d1fae5; color: #065f46; padding: 10px; border-radius: 10px; text-align: center; font-weight: 600; margin-top: 15px; display: none;">
+                        🚀 BOOST MODE: Max speed for fresh air circulation
                     </div>
                 </div>
 
@@ -397,6 +403,11 @@
                     <div class="window-control" id="windowControlContainer">
                         <button class="window-btn" id="windowCloseBtn" onclick="setWindow(false)">Close Window</button>
                         <button class="window-btn" id="windowOpenBtn" onclick="setWindow(true)">Open Window</button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="copy-btn" onclick="calibrateAirQuality()" style="width: 100%; background: #f59e0b;">
+                            🔧 Calibrate Air Sensor
+                        </button>
                     </div>
                 </div>
 
@@ -439,6 +450,14 @@
                 document.getElementById('rpmValue').textContent = data.RPM ? Math.round(data.RPM) : '--';
                 document.getElementById('pwmValue').textContent = data.PWM !== undefined ? data.PWM : '--';
                 
+                // Show boost mode indicator
+                const boostIndicator = document.getElementById('boostIndicator');
+                if (data.BoostMode) {
+                    boostIndicator.style.display = 'block';
+                } else {
+                    boostIndicator.style.display = 'none';
+                }
+                
                 const now = new Date();
                 document.getElementById('tempUpdateTime').textContent = `Last updated: ${now.toLocaleTimeString()}`;
                 document.getElementById('tempStatus').textContent = '🟢 Connected';
@@ -462,8 +481,10 @@
         onValue(tempPwmRef, (snapshot) => {
             const pwmValue = snapshot.val();
             if (pwmValue !== null) {
-                document.getElementById('fanSlider').value = pwmValue;
-                updateFanSliderDisplay(pwmValue);
+                // Ensure minimum value is 80
+                const adjustedValue = Math.max(80, pwmValue);
+                document.getElementById('fanSlider').value = adjustedValue;
+                updateFanSliderDisplay(adjustedValue);
             }
         });
 
@@ -490,20 +511,21 @@
         };
 
         function updateFanSliderDisplay(value) {
-            const percent = Math.round((value / 255) * 100);
+            // Value range is 80-255, map to percentage 31%-100%
+            const percent = Math.round(((value - 80) / (255 - 80)) * 69 + 31);
             let displayText = `${percent}%`;
-            if (value == 0) {
-                displayText = 'OFF';
-            } else if (value == 255) {
+            if (value >= 253) {
                 displayText = '100% (MAX)';
             }
             document.getElementById('fanSliderValue').textContent = displayText;
         }
 
         window.updateFanSlider = function(value) {
+            // Ensure minimum is 80
+            value = Math.max(80, parseInt(value));
             updateFanSliderDisplay(value);
             if (isFanManualMode) {
-                set(ref(database, 'Device1/Control/ManualPWM'), parseInt(value));
+                set(ref(database, 'Device1/Control/ManualPWM'), value);
             }
         };
 
@@ -592,6 +614,18 @@
             if (isWindowManualMode) {
                 set(ref(database, 'AirQualityDevice/Control/WindowOpen'), open);
                 updateWindowButtonsUI(open);
+            }
+        };
+
+        // Calibrate air quality sensor
+        window.calibrateAirQuality = function() {
+            if (confirm('Start air quality sensor calibration?\n\nMake sure the sensor is in clean air and wait for 10 seconds.')) {
+                set(ref(database, 'AirQualityDevice/Control/CalibrateNow'), true);
+                alert('Calibration command sent! Check the air quality device OLED display for progress.');
+                // Reset the flag after 2 seconds
+                setTimeout(() => {
+                    set(ref(database, 'AirQualityDevice/Control/CalibrateNow'), false);
+                }, 2000);
             }
         };
 
